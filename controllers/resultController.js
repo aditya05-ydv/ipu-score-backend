@@ -45,6 +45,12 @@ const getCaptcha = async (req, res) => {
       ipuCookie: req.session.ipuCookie,
     });
 
+    console.log('IPU Server Response:', {
+      status: response.status,
+      headers: response.headers,
+      data: response.data,
+    });
+
     res.set('Content-Type', 'image/png');
     res.send(response.data);
 
@@ -74,6 +80,12 @@ const login = async (req, res) => {
       encryptedPassword,
       captcha,
       savedCookie,
+    });
+
+    console.log('IPU Server Response:', {
+      status: response.status,
+      headers: response.headers,
+      data: response.data,
     });
 
     const response = await axios.post(
