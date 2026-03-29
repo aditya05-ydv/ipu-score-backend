@@ -41,6 +41,10 @@ const getCaptcha = async (req, res) => {
     req.session.ipuCookie = cookies;
     await new Promise((resolve) => req.session.save(resolve));
 
+    console.log('CAPTCHA Request:', {
+      ipuCookie: req.session.ipuCookie,
+    });
+
     res.set('Content-Type', 'image/png');
     res.send(response.data);
 
