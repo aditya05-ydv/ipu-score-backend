@@ -50,6 +50,7 @@ app.listen(PORT, () => {
 const express      = require('express');
 const cors         = require('cors');
 const session      = require('express-session');
+const MongoStore   = require('connect-mongo');
 const dotenv       = require('dotenv');
 const mongoose     = require('mongoose');
 const resultRoutes = require('./routes/result');
@@ -76,11 +77,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Session setup
+// ✅ Session setup (with MongoDB store for persistence)
 app.use(session({
   secret: 'ipu-score-secret-key',
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
+  store: new MongoStore({ mongoUrl: process.env.MONGODB_URI }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
