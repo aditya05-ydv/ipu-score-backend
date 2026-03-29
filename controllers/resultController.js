@@ -65,6 +65,13 @@ const login = async (req, res) => {
     const encryptedPassword = encryptPassword(password, captcha.trim());
     const savedCookie       = req.session.ipuCookie || '';
 
+    console.log('Login Request:', {
+      username,
+      encryptedPassword,
+      captcha,
+      savedCookie,
+    });
+
     const response = await axios.post(
       `${IPU_BASE}/Login`,
       new URLSearchParams({
