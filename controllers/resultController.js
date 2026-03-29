@@ -75,6 +75,11 @@ const login = async (req, res) => {
     const encryptedPassword = encryptPassword(password, captcha.trim());
     const savedCookie       = req.session.ipuCookie || '';
 
+    if (!savedCookie) {
+      console.error('No session cookie found. Please ensure the CAPTCHA request is saving the cookie.');
+      return res.status(401).json({ error: 'Session expired. Please refresh the CAPTCHA and try again.' });
+    }
+
     console.log('Login Request:', {
       username,
       encryptedPassword,
