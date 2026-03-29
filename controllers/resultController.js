@@ -102,6 +102,12 @@ const login = async (req, res) => {
       }
     );
 
+    console.log('IPU Login Response:', {
+      status: response.status,
+      headers: response.headers,
+      data: response.data,
+    });
+
     const location   = response.headers['location'] || '';
     const newCookies = parseCookies(response.headers['set-cookie']);
 
