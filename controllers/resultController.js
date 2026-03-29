@@ -82,12 +82,6 @@ const login = async (req, res) => {
       savedCookie,
     });
 
-    console.log('IPU Server Response:', {
-      status: response.status,
-      headers: response.headers,
-      data: response.data,
-    });
-
     const response = await axios.post(
       `${IPU_BASE}/Login`,
       new URLSearchParams({
