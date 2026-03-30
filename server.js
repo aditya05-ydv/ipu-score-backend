@@ -77,6 +77,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ✅ Trust Proxy for Render/Heroku (required for secure cookies)
+app.set('trust proxy', 1);
+
 // ✅ Session setup (with MongoDB store for persistence)
 app.use(session({
   secret: 'ipu-score-secret-key',
