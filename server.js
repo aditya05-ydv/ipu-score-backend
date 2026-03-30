@@ -67,7 +67,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // ✅ FIXED CORS for production
 app.use(cors({
-  origin:'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://ipu-score-frontend.vercel.app'],
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
