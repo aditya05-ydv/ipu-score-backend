@@ -26,6 +26,7 @@ const parseCookies = (cookieArray) => {
 // ══════════════════════════════════════════════
 // 1. GET CAPTCHA
 // GET /api/captcha
+// Returns JSON: { captchaImage: base64, ipuCookie: string }
 // ══════════════════════════════════════════════
 const getCaptcha = async (req, res) => {
   try {
@@ -38,23 +39,17 @@ const getCaptcha = async (req, res) => {
     });
 
     const cookies = parseCookies(response.headers['set-cookie']);
-    req.session.ipuCookie = cookies;
-    await new Promise((resolve) => req.session.save(resolve));
+    const base64  = Buffer.from(response.data).toString('base64');
 
-    console.log('CAPTCHA Request:', {
-      ipuCookie: req.session.ipuCookie,
+    console.log('CAPTCHA fetched, IPU cookie:', cookies ? 'present' : 'missing');
+
+    // Return captcha image as base64 + IPU cookie in response body
+    // No more reliance on express-session cookies!
+    res.json({
+      success:      true,
+      captchaImage: `data:image/png;base64,${base64}`,
+      ipuCookie:    cookies,
     });
-
-    console.log('IPU Server Response:', {
-      status: response.status,
-      headers: response.headers,
-      data: response.data,
-    });
-
-    console.log('Set-Cookie Header:', response.headers['set-cookie']);
-
-    res.set('Content-Type', 'image/png');
-    res.send(response.data);
 
   } catch (err) {
     console.error('getCaptcha error:', err.message);
@@ -65,28 +60,28 @@ const getCaptcha = async (req, res) => {
 // ══════════════════════════════════════════════
 // 2. LOGIN
 // POST /api/login
+// Body: { username, password, captcha, ipuCookie }
 // ══════════════════════════════════════════════
 const login = async (req, res) => {
-  const { username, password, captcha } = req.body;
+  const { username, password, captcha, ipuCookie } = req.body;
 
   if (!username || !password || !captcha) {
     return res.status(400).json({ error: 'All fields required' });
   }
 
+  if (!ipuCookie) {
+    return res.status(401).json({
+      error: 'Session expired. Please refresh the CAPTCHA and try again.',
+    });
+  }
+
   try {
     const encryptedPassword = encryptPassword(password, captcha.trim());
-    const savedCookie       = req.session.ipuCookie || '';
-
-    if (!savedCookie) {
-      console.error('No session cookie found. Please ensure the CAPTCHA request is saving the cookie.');
-      return res.status(401).json({ error: 'Session expired. Please refresh the CAPTCHA and try again.' });
-    }
 
     console.log('Login Request:', {
       username,
-      encryptedPassword,
       captcha,
-      savedCookie,
+      ipuCookie: ipuCookie ? 'present' : 'missing',
     });
 
     const response = await axios.post(
@@ -99,7 +94,7 @@ const login = async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie':        savedCookie,
+          'Cookie':        ipuCookie,
           'User-Agent':   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Referer':      `${IPU_BASE}/login.jsp`,
           'Origin':       'https://examweb.ggsipu.ac.in',
@@ -109,19 +104,15 @@ const login = async (req, res) => {
       }
     );
 
-    console.log('IPU Login Response:', {
-      status: response.status,
-      headers: response.headers,
-      data: response.data,
-    });
-
     const location   = response.headers['location'] || '';
     const newCookies = parseCookies(response.headers['set-cookie']);
 
     if (location.includes('studenthome')) {
-      if (newCookies) req.session.ipuCookie = newCookies;
-      await new Promise((resolve) => req.session.save(resolve));
-      return res.json({ success: true });
+      // Return the updated IPU cookie so frontend can use it for result fetch
+      return res.json({
+        success:   true,
+        ipuCookie: newCookies || ipuCookie,
+      });
     }
 
     return res.status(401).json({
@@ -138,12 +129,13 @@ const login = async (req, res) => {
 // ══════════════════════════════════════════════
 // 3. GET ALL RESULTS
 // POST /api/result
+// Body: { ipuCookie }
 // ══════════════════════════════════════════════
 const getResult = async (req, res) => {
   try {
-    const savedCookie = req.session.ipuCookie || '';
+    const { ipuCookie } = req.body;
 
-    if (!savedCookie) {
+    if (!ipuCookie) {
       return res.status(401).json({
         error: 'Session expired. Please login again.',
       });
@@ -154,7 +146,7 @@ const getResult = async (req, res) => {
         `${IPU_BASE}/StudentSearchProcess?flag=2&euno=${i + 1}`,
         {
           headers: {
-            'Cookie':     savedCookie,
+            'Cookie':     ipuCookie,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Referer':    `${IPU_BASE}/student/studenthome.jsp`,
             'Accept':     'application/json',
@@ -184,8 +176,6 @@ const getResult = async (req, res) => {
         error: 'No results found. Please check your credentials.',
       });
     }
-
-    req.session.destroy();
 
     return res.json({
       success: true,
