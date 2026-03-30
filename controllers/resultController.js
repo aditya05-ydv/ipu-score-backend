@@ -51,6 +51,8 @@ const getCaptcha = async (req, res) => {
       data: response.data,
     });
 
+    console.log('Set-Cookie Header:', response.headers['set-cookie']);
+
     res.set('Content-Type', 'image/png');
     res.send(response.data);
 
